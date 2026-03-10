@@ -10,7 +10,18 @@ const PORT = 3847;
 const HOME = process.env.USERPROFILE || process.env.HOME;
 const CLAUDE_DIR = path.join(HOME, '.claude');
 const SKILLS_DIR = path.join(CLAUDE_DIR, 'skills');
-const DISABLED_SKILLS_DIR = process.env.CLAUDE_DISABLED_SKILLS_DIR || path.join(CLAUDE_DIR, 'skills-disabled');
+const DISABLED_SKILLS_DIR = (() => {
+  if (process.env.CLAUDE_DISABLED_SKILLS_DIR) return process.env.CLAUDE_DISABLED_SKILLS_DIR;
+  // Check common locations for disabled skills
+  const candidates = [
+    path.join(HOME, 'Documents', 'Claudetemp', 'Skills'),
+    path.join(CLAUDE_DIR, 'skills-disabled'),
+  ];
+  for (const dir of candidates) {
+    if (fs.existsSync(dir)) return dir;
+  }
+  return path.join(CLAUDE_DIR, 'skills-disabled');
+})();
 const SETTINGS_FILE = path.join(CLAUDE_DIR, 'settings.json');
 const HOOKS_FILE = path.join(CLAUDE_DIR, 'hooks.json');
 const PLUGINS_FILE = path.join(CLAUDE_DIR, 'plugins', 'installed_plugins.json');
