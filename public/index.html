@@ -171,6 +171,18 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+  .card-desc.expanded {
+    -webkit-line-clamp: unset;
+    display: block;
+  }
+  .more-link {
+    font-size: 11px;
+    color: var(--accent2);
+    cursor: pointer;
+    margin-top: 2px;
+    user-select: none;
+  }
+  .more-link:hover { text-decoration: underline; }
   .card-meta {
     display: flex;
     gap: 8px;
@@ -379,13 +391,13 @@ function renderSkills() {
   grid.innerHTML = filtered.map(s => `
     <div class="card ${s.enabled ? '' : 'disabled'}" data-name="${s.dirName}">
       <div class="card-header">
-        <div class="card-title" title="${esc(s.dirName)}">${esc(s.name)}</div>
+        <div class="card-title" title="${esc(s.name)}${s.description ? ' — ' + esc(s.description) : ''}">${esc(s.name)}</div>
         <label class="toggle" id="toggle-skill-${esc(s.dirName)}">
           <input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleSkill('${esc(s.dirName)}', this)">
           <span class="slider"></span>
         </label>
       </div>
-      ${s.description ? `<div class="card-desc">${esc(s.description)}</div>` : ''}
+      ${descBlock(s.description)}
       <div class="card-meta">
         <span class="tag ${s.enabled ? 'green' : ''}">${s.enabled ? 'Active' : 'Disabled'}</span>
         <span class="tag">${esc(s.dirName)}</span>
@@ -407,13 +419,13 @@ function renderPlugins() {
   grid.innerHTML = filtered.map(p => `
     <div class="card ${p.enabled ? '' : 'disabled'}">
       <div class="card-header">
-        <div class="card-title" title="${esc(p.id)}">${esc(p.displayName)}</div>
+        <div class="card-title" title="${esc(p.displayName)}${p.description ? ' — ' + esc(p.description) : ''}">${esc(p.displayName)}</div>
         <label class="toggle" id="toggle-plugin-${esc(p.id)}">
           <input type="checkbox" ${p.enabled ? 'checked' : ''} onchange="togglePlugin('${esc(p.id)}', this)">
           <span class="slider"></span>
         </label>
       </div>
-      ${p.description ? `<div class="card-desc">${esc(p.description)}</div>` : ''}
+      ${descBlock(p.description)}
       <div class="card-meta">
         <span class="tag ${p.enabled ? 'green' : ''}">${p.enabled ? 'Active' : 'Disabled'}</span>
         <span class="tag orange">${esc(p.scope)}</span>
@@ -441,7 +453,7 @@ function renderHooks() {
   grid.innerHTML = filtered.map(h => `
     <div class="card ${h.disabled ? 'disabled' : ''}">
       <div class="card-header">
-        <div class="card-title">${esc(h.description)}</div>
+        <div class="card-title" title="${esc(h.description)}">${esc(h.description)}</div>
         <label class="toggle" id="toggle-hook-${esc(h.lifecycle)}-${h.index}">
           <input type="checkbox" ${h.disabled ? '' : 'checked'} onchange="toggleHook('${esc(h.lifecycle)}', ${h.index}, this)">
           <span class="slider"></span>
@@ -470,7 +482,7 @@ function renderMcp() {
   grid.innerHTML = filtered.map(m => `
     <div class="card ${m.enabled ? '' : 'disabled'}">
       <div class="card-header">
-        <div class="card-title">${esc(m.name)}</div>
+        <div class="card-title" title="${esc(m.name)} — From plugin: ${esc(m.plugin)}">${esc(m.name)}</div>
       </div>
       <div class="card-desc">From plugin: ${esc(m.plugin)}</div>
       <div class="card-meta">
@@ -577,6 +589,19 @@ async function bulkToggleSkills(enable) {
   } catch (err) {
     toast('Bulk operation failed', 'error');
   }
+}
+
+function toggleDesc(el) {
+  const desc = el.previousElementSibling;
+  desc.classList.toggle('expanded');
+  el.textContent = desc.classList.contains('expanded') ? 'less' : 'more...';
+}
+
+function descBlock(text) {
+  if (!text) return '';
+  const escaped = esc(text);
+  const needsMore = text.length > 80;
+  return `<div class="card-desc">${escaped}</div>${needsMore ? '<div class="more-link" onclick="toggleDesc(this)">more...</div>' : ''}`;
 }
 
 // --- Utilities ---
