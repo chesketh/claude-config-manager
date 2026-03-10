@@ -365,7 +365,8 @@ function matchesFilter(item) {
 function renderSkills() {
   const grid = document.getElementById('grid-skills');
   const filtered = data.skills.filter(matchesFilter);
-  document.getElementById('badge-skills').textContent = data.skills.length;
+  const activeSkillCount = data.skills.filter(s => s.enabled).length;
+  document.getElementById('badge-skills').textContent = `${activeSkillCount}/${data.skills.length}`;
 
   if (!filtered.length) {
     grid.innerHTML = '<div class="empty-state">No skills match your filter</div>';
@@ -393,7 +394,8 @@ function renderSkills() {
 function renderPlugins() {
   const grid = document.getElementById('grid-plugins');
   const filtered = data.plugins.filter(matchesFilter);
-  document.getElementById('badge-plugins').textContent = data.plugins.length;
+  const activePluginCount = data.plugins.filter(p => p.enabled).length;
+  document.getElementById('badge-plugins').textContent = `${activePluginCount}/${data.plugins.length}`;
 
   if (!filtered.length) {
     grid.innerHTML = '<div class="empty-state">No plugins match your filter</div>';
@@ -422,7 +424,8 @@ function renderPlugins() {
 function renderHooks() {
   const grid = document.getElementById('grid-hooks');
   const filtered = data.hooks.filter(matchesFilter);
-  document.getElementById('badge-hooks').textContent = data.hooks.length;
+  const activeHookCount = data.hooks.filter(h => !h.disabled).length;
+  document.getElementById('badge-hooks').textContent = `${activeHookCount}/${data.hooks.length}`;
 
   if (!filtered.length) {
     grid.innerHTML = '<div class="empty-state">No hooks match your filter</div>';
