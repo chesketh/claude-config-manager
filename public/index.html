@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Config Manager</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232736;
+    --border: #2e3347;
+    --text: #e4e6f0;
+    --text2: #8b8fa7;
+    --accent: #6c63ff;
+    --accent2: #8b84ff;
+    --green: #2dd4a0;
+    --red: #f87171;
+    --orange: #fb923c;
+    --yellow: #fbbf24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  header h1 span { color: var(--accent); }
+  .search-box {
+    flex: 1;
+    max-width: 400px;
+    position: relative;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-box input:focus { border-color: var(--accent); }
+  .search-box::before {
+    content: '\1F50D';
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    opacity: 0.5;
+  }
+  .stats {
+    display: flex;
+    gap: 16px;
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .stats .stat { white-space: nowrap; }
+  .stats .stat b { color: var(--text); }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 12px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tab:hover { background: var(--surface2); color: var(--text); }
+  .tab.active { background: var(--accent); color: white; }
+  .tab .badge {
+    background: rgba(255,255,255,0.15);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .tab.active .badge { background: rgba(255,255,255,0.25); }
+
+  .container { padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
+
+  .section-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--text); }
+  .btn.danger:hover { border-color: var(--red); color: var(--red); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color 0.2s, opacity 0.3s;
+  }
+  .card.disabled { opacity: 0.5; }
+  .card:hover { border-color: var(--accent); }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .card-desc {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--surface2);
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .tag.green { color: var(--green); border-color: rgba(45,212,160,0.3); }
+  .tag.orange { color: var(--orange); border-color: rgba(251,146,60,0.3); }
+  .tag.yellow { color: var(--yellow); border-color: rgba(251,191,36,0.3); }
+  .tag.red { color: var(--red); border-color: rgba(248,113,113,0.3); }
+
+  /* Toggle Switch */
+  .toggle {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle .slider {
+    position: absolute;
+    inset: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .toggle .slider::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 2px;
+    top: 2px;
+    background: var(--text2);
+    border-radius: 50%;
+    transition: all 0.3s;
+  }
+  .toggle input:checked + .slider {
+    background: var(--accent);
+    border-color: var(--accent2);
+  }
+  .toggle input:checked + .slider::before {
+    transform: translateX(18px);
+    background: white;
+  }
+  .toggle.loading .slider { opacity: 0.5; pointer-events: none; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .toast {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    animation: slideIn 0.3s ease-out;
+    max-width: 360px;
+  }
+  .toast.success { border-color: var(--green); }
+  .toast.error { border-color: var(--red); }
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes fadeOut {
+    to { opacity: 0; transform: translateY(10px); }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text2);
+    font-size: 14px;
+  }
+
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+    header { flex-wrap: wrap; }
+    .stats { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>Claude</span> Config Manager</h1>
+  <div class="search-box">
+    <input type="text" id="search" placeholder="Filter items..." autocomplete="off">
+  </div>
+  <div class="stats" id="stats"></div>
+</header>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" data-tab="skills">Skills <span class="badge" id="badge-skills">0</span></button>
+  <button class="tab" data-tab="plugins">Plugins <span class="badge" id="badge-plugins">0</span></button>
+  <button class="tab" data-tab="hooks">Hooks <span class="badge" id="badge-hooks">0</span></button>
+  <button class="tab" data-tab="mcp">MCP Servers <span class="badge" id="badge-mcp">0</span></button>
+</div>
+
+<div class="container">
+  <!-- Skills Panel -->
+  <div class="panel active" id="panel-skills">
+    <div class="section-actions">
+      <button class="btn" onclick="bulkToggleSkills(true)">Enable All Visible</button>
+      <button class="btn danger" onclick="bulkToggleSkills(false)">Disable All Visible</button>
+    </div>
+    <div class="grid" id="grid-skills"></div>
+  </div>
+
+  <!-- Plugins Panel -->
+  <div class="panel" id="panel-plugins">
+    <div class="grid" id="grid-plugins"></div>
+  </div>
+
+  <!-- Hooks Panel -->
+  <div class="panel" id="panel-hooks">
+    <div class="grid" id="grid-hooks"></div>
+  </div>
+
+  <!-- MCP Panel -->
+  <div class="panel" id="panel-mcp">
+    <div class="grid" id="grid-mcp"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+let data = { skills: [], plugins: [], hooks: [], mcpServers: [] };
+let activeTab = 'skills';
+let searchFilter = '';
+
+// --- Fetch data ---
+async function loadData() {
+  try {
+    const res = await fetch('/api/overview');
+    data = await res.json();
+    render();
+  } catch (err) {
+    toast('Failed to load config data', 'error');
+  }
+}
+
+// --- Tabs ---
+document.getElementById('tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  activeTab = tab.dataset.tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === activeTab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${activeTab}`));
+});
+
+// --- Search ---
+document.getElementById('search').addEventListener('input', e => {
+  searchFilter = e.target.value.toLowerCase();
+  render();
+});
+
+// --- Render ---
+function render() {
+  renderSkills();
+  renderPlugins();
+  renderHooks();
+  renderMcp();
+  updateStats();
+}
+
+function matchesFilter(item) {
+  if (!searchFilter) return true;
+  const haystack = [
+    item.name, item.dirName, item.displayName, item.description,
+    item.id, item.matcher, item.lifecycle, item.plugin
+  ].filter(Boolean).join(' ').toLowerCase();
+  return haystack.includes(searchFilter);
+}
+
+function renderSkills() {
+  const grid = document.getElementById('grid-skills');
+  const filtered = data.skills.filter(matchesFilter);
+  document.getElementById('badge-skills').textContent = data.skills.length;
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty-state">No skills match your filter</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(s => `
+    <div class="card ${s.enabled ? '' : 'disabled'}" data-name="${s.dirName}">
+      <div class="card-header">
+        <div class="card-title" title="${esc(s.dirName)}">${esc(s.name)}</div>
+        <label class="toggle" id="toggle-skill-${esc(s.dirName)}">
+          <input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleSkill('${esc(s.dirName)}', this)">
+          <span class="slider"></span>
+        </label>
+      </div>
+      ${s.description ? `<div class="card-desc">${esc(s.description)}</div>` : ''}
+      <div class="card-meta">
+        <span class="tag ${s.enabled ? 'green' : ''}">${s.enabled ? 'Active' : 'Disabled'}</span>
+        <span class="tag">${esc(s.dirName)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderPlugins() {
+  const grid = document.getElementById('grid-plugins');
+  const filtered = data.plugins.filter(matchesFilter);
+  document.getElementById('badge-plugins').textContent = data.plugins.length;
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty-state">No plugins match your filter</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(p => `
+    <div class="card ${p.enabled ? '' : 'disabled'}">
+      <div class="card-header">
+        <div class="card-title" title="${esc(p.id)}">${esc(p.displayName)}</div>
+        <label class="toggle" id="toggle-plugin-${esc(p.id)}">
+          <input type="checkbox" ${p.enabled ? 'checked' : ''} onchange="togglePlugin('${esc(p.id)}', this)">
+          <span class="slider"></span>
+        </label>
+      </div>
+      ${p.description ? `<div class="card-desc">${esc(p.description)}</div>` : ''}
+      <div class="card-meta">
+        <span class="tag ${p.enabled ? 'green' : ''}">${p.enabled ? 'Active' : 'Disabled'}</span>
+        <span class="tag orange">${esc(p.scope)}</span>
+        <span class="tag">v${esc(p.version)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderHooks() {
+  const grid = document.getElementById('grid-hooks');
+  const filtered = data.hooks.filter(matchesFilter);
+  document.getElementById('badge-hooks').textContent = data.hooks.length;
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty-state">No hooks match your filter</div>';
+    return;
+  }
+
+  const lifecycleColors = {
+    PreToolUse: 'yellow', PostToolUse: 'orange', PreCompact: '',
+    SessionStart: 'green', SessionEnd: 'green', Stop: 'red'
+  };
+
+  grid.innerHTML = filtered.map(h => `
+    <div class="card ${h.disabled ? 'disabled' : ''}">
+      <div class="card-header">
+        <div class="card-title">${esc(h.description)}</div>
+        <label class="toggle" id="toggle-hook-${esc(h.lifecycle)}-${h.index}">
+          <input type="checkbox" ${h.disabled ? '' : 'checked'} onchange="toggleHook('${esc(h.lifecycle)}', ${h.index}, this)">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="card-meta">
+        <span class="tag ${h.disabled ? '' : 'green'}">${h.disabled ? 'Disabled' : 'Active'}</span>
+        <span class="tag ${lifecycleColors[h.lifecycle] || ''}">${esc(h.lifecycle)}</span>
+        <span class="tag">${esc(h.matcher)}</span>
+        ${h.async ? '<span class="tag">async</span>' : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderMcp() {
+  const grid = document.getElementById('grid-mcp');
+  const filtered = data.mcpServers.filter(matchesFilter);
+  document.getElementById('badge-mcp').textContent = data.mcpServers.length;
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty-state">No MCP servers found</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(m => `
+    <div class="card ${m.enabled ? '' : 'disabled'}">
+      <div class="card-header">
+        <div class="card-title">${esc(m.name)}</div>
+      </div>
+      <div class="card-desc">From plugin: ${esc(m.plugin)}</div>
+      <div class="card-meta">
+        <span class="tag ${m.enabled ? 'green' : ''}">${m.enabled ? 'Active' : 'Disabled'}</span>
+        <span class="tag">${esc(m.type)}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateStats() {
+  const activeSkills = data.skills.filter(s => s.enabled).length;
+  const activePlugins = data.plugins.filter(p => p.enabled).length;
+  const activeHooks = data.hooks.filter(h => !h.disabled).length;
+  document.getElementById('stats').innerHTML = `
+    <span class="stat"><b>${activeSkills}</b>/${data.skills.length} skills</span>
+    <span class="stat"><b>${activePlugins}</b>/${data.plugins.length} plugins</span>
+    <span class="stat"><b>${activeHooks}</b>/${data.hooks.length} hooks</span>
+    <span class="stat"><b>${data.mcpServers.length}</b> MCP</span>
+  `;
+}
+
+// --- Toggle actions ---
+async function toggleSkill(name, checkbox) {
+  const toggle = checkbox.closest('.toggle');
+  toggle.classList.add('loading');
+  try {
+    const res = await fetch(`/api/skills/${encodeURIComponent(name)}/toggle`, { method: 'POST' });
+    const result = await res.json();
+    if (result.success) {
+      toast(result.message, 'success');
+      await loadData();
+    } else {
+      toast(result.message, 'error');
+      checkbox.checked = !checkbox.checked;
+    }
+  } catch (err) {
+    toast('Failed to toggle skill', 'error');
+    checkbox.checked = !checkbox.checked;
+  }
+  toggle.classList.remove('loading');
+}
+
+async function togglePlugin(id, checkbox) {
+  const toggle = checkbox.closest('.toggle');
+  toggle.classList.add('loading');
+  try {
+    const res = await fetch(`/api/plugins/${encodeURIComponent(id)}/toggle`, { method: 'POST' });
+    const result = await res.json();
+    if (result.success) {
+      toast(result.message, 'success');
+      await loadData();
+    } else {
+      toast(result.message, 'error');
+      checkbox.checked = !checkbox.checked;
+    }
+  } catch (err) {
+    toast('Failed to toggle plugin', 'error');
+    checkbox.checked = !checkbox.checked;
+  }
+  toggle.classList.remove('loading');
+}
+
+async function toggleHook(lifecycle, index, checkbox) {
+  const toggle = checkbox.closest('.toggle');
+  toggle.classList.add('loading');
+  try {
+    const res = await fetch(`/api/hooks/${encodeURIComponent(lifecycle)}/${index}/toggle`, { method: 'POST' });
+    const result = await res.json();
+    if (result.success) {
+      toast(result.message, 'success');
+      await loadData();
+    } else {
+      toast(result.message, 'error');
+      checkbox.checked = !checkbox.checked;
+    }
+  } catch (err) {
+    toast('Failed to toggle hook', 'error');
+    checkbox.checked = !checkbox.checked;
+  }
+  toggle.classList.remove('loading');
+}
+
+async function bulkToggleSkills(enable) {
+  const filtered = data.skills.filter(matchesFilter);
+  const names = filtered
+    .filter(s => enable ? !s.enabled : s.enabled)
+    .map(s => s.dirName);
+  if (!names.length) {
+    toast(`No skills to ${enable ? 'enable' : 'disable'}`, 'error');
+    return;
+  }
+  if (!confirm(`${enable ? 'Enable' : 'Disable'} ${names.length} skills?`)) return;
+  try {
+    const res = await fetch('/api/skills/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ names, enable })
+    });
+    const result = await res.json();
+    const ok = result.results.filter(r => r.success).length;
+    toast(`${ok}/${names.length} skills ${enable ? 'enabled' : 'disabled'}`, 'success');
+    await loadData();
+  } catch (err) {
+    toast('Bulk operation failed', 'error');
+  }
+}
+
+// --- Utilities ---
+function esc(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function toast(message, type = 'success') {
+  const container = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = message;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.animation = 'fadeOut 0.3s forwards';
+    setTimeout(() => el.remove(), 300);
+  }, 3000);
+}
+
+// --- Init ---
+loadData();
+</script>
+</body>
+</html>

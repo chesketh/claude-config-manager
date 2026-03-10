@@ -1,0 +1,13 @@
+{
+  "name": "claude-config-manager",
+  "version": "1.0.0",
+  "description": "Browser-based dashboard to manage Claude Code skills, plugins, hooks, and MCP servers",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "open": "^10.1.0"
+  }
+}
